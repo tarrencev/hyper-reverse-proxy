@@ -319,9 +319,14 @@ pub async fn call<'a, T: hyper::client::connect::Connect + Clone + Send + Sync +
                     let mut request_upgraded =
                         request_upgraded.await.expect("failed to upgrade request");
 
-                    copy_bidirectional(&mut response_upgraded, &mut request_upgraded)
-                        .await
-                        .expect("coping between upgraded connections failed");
+                    match copy_bidirectional(&mut response_upgraded, &mut request_upgraded).await {
+                        Ok(_) => (),
+                        Err(e) => {
+                            if e.kind() != std::io::ErrorKind::NotConnected {
+                                error!("Error copying between upgraded connections: {}", e);
+                            }
+                        }
+                    }
                 });
 
                 Ok(response)
